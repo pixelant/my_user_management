@@ -2,7 +2,6 @@
     "name": "koninklijke-collective/my-user-management",
     "description": "TYPO3 Extension: A module that makes it possible for editors to maintain backend users.",
     "type": "typo3-cms-extension",
-
     "keywords": [
         "TYPO3",
         "CMS",
@@ -19,8 +18,23 @@
         "typo3/cms-core": ">=7.6.0 <9.0.0",
         "typo3/cms-beuser": ">=7.6.0 <9.0.0"
     },
+    "require-dev": {
+        "nimut/testing-framework": "^2.0"
+    },
+    "config": {
+        "vendor-dir": ".Build/vendor"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-master": "1.x-dev"
+        },
+        "typo3/cms": {
+            "cms-package-dir": "{$vendor-dir}/typo3/cms",
+            "web-dir": ".Build/Web"
+        }
+    },
     "replace": {
-        "my_user_management": "self.version",
+        "my-user-management": "self.version",
         "typo3-ter/my-user-management": "self.version"
     },
     "autoload": {
@@ -28,7 +42,11 @@
             "KoninklijkeCollective\\MyUserManagement\\": "Classes/"
         }
     },
-
+    "autoload-dev": {
+        "psr-4": {
+            "KoninklijkeCollective\\MyUserManagement\\Tests\\": "Tests/"
+        }
+    },
     "authors": [
         {
             "name": "Benjamin Serfhos",
