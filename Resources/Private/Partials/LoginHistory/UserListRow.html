@@ -1,5 +1,7 @@
 {namespace bu = TYPO3\CMS\Beuser\ViewHelpers}
 {namespace core = TYPO3\CMS\Core\ViewHelpers}
+{namespace um=KoninklijkeCollective\MyUserManagement\ViewHelper}
+
 
 <tr class="db_list_normal">
     <td class="col-icon">
@@ -8,7 +10,7 @@
         </a>
     </td>
     <td class="t3-title-column">
-        <a href="{bu:editRecord(parameters: 'edit[be_users][{backendUser.uid}]=edit&returnUrl={returnUrl -> f:format.urlencode()}')}">
+        <a href="{um:editRecord(parameters: 'edit[be_users][{backendUser.uid}]=edit&returnUrl={returnUrl -> f:format.urlencode()}')}">
             <b>{backendUser.userName}</b><br/>
             {backendUser.realName}
         </a>

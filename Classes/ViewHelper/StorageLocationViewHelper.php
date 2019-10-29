@@ -1,47 +1,40 @@
 <?php
+
 namespace KoninklijkeCollective\MyUserManagement\ViewHelper;
+
+use TYPO3\CMS\Core\Resource\ResourceFactory;
+use TYPO3\CMS\Core\Resource\ResourceStorage;
+use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
+use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
  * ViewHelper: Storage Location
  *
  * @package KoninklijkeCollective\MyUserManagement\ViewHelpers
  */
-class StorageLocationViewHelper extends \TYPO3\CMS\Fluid\Core\ViewHelper\AbstractViewHelper implements \TYPO3\CMS\Core\SingletonInterface
+class StorageLocationViewHelper extends AbstractViewHelper
 {
-
-    /**
-     * Cached storages
-     *
-     * @var array
-     */
-    protected $storage = [];
-
-    /**
-     * @var \TYPO3\CMS\Core\Resource\StorageRepository
-     * @inject
-     */
-    protected $storageRepository;
-
-    /**
-     * Retrieve page details from given page id
-     *
-     * @param integer $storageId
-     * @param string $location
-     * @return string Rendered string
-     */
-    public function render($storageId, $location = '/')
+    public function initializeArguments()
     {
-        $output = null;
-        if (!isset($this->storage[$storageId]) || !($this->storage[$storageId] instanceof \TYPO3\CMS\Core\Resource\ResourceStorage)) {
-            try {
-                $this->storage[$storageId] = $this->storageRepository->findByUid($storageId);
-            } catch (\Exception $e) {
-            }
-        }
-        /** @var \TYPO3\CMS\Core\Resource\ResourceStorage $storage */
-        $storage = $this->storage[$storageId];
+        $this->registerArgument('storageId', 'int', 'Storage Id', true);
+        $this->registerArgument('location', 'string', 'location', false, '/');
+    }
 
-        if ($storage instanceof \TYPO3\CMS\Core\Resource\ResourceStorage) {
+    /**
+     * @param array $arguments
+     * @param \Closure $renderChildrenClosure
+     * @param RenderingContextInterface $renderingContext
+     * @return mixed
+     */
+    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
+    {
+        $storageId = $arguments['storageId'];
+        $location = $arguments['location'];
+
+        /** @var ResourceStorage $storage */
+        $storage = ResourceFactory::getInstance()->getStorageObject($storageId);
+
+        if ($storage instanceof ResourceStorage) {
             $folder = null;
             try {
                 $folder = $storage->getFolder($location);

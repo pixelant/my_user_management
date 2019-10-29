@@ -1,5 +1,9 @@
 <?php
+
 namespace KoninklijkeCollective\MyUserManagement\Service;
+
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
 
 /**
  * Service: Logs
@@ -23,62 +27,86 @@ class LogService implements \TYPO3\CMS\Core\SingletonInterface
      */
     public function findUserLoginActions($parameters = null)
     {
-        $whereParts = [
-            'join' => 'sys_log.`userId` = be_users.uid',
-            'enabled' => '(be_users.disable = 0 AND be_users.deleted = 0)',
-            'userId' => 'sys_log.`userId` > 0',
-            'tstamp' => 'sys_log.`tstamp` > 0',
-            'level' => 'sys_log.`level` = 0',
-            'type' => 'sys_log.`type` = ' . self::TYPE_LOGGED_IN,
-            'action' => 'sys_log.`action` = ' . self::ACTION_LOG_IN,
-        ];
+        $queryBuilder = GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getQueryBuilderForTable('sys_log');
+        $expr = $queryBuilder->expr();
+
+        $queryBuilder
+            ->select('sys_log.*')
+            ->from('sys_log')
+            ->join(
+                'sys_log',
+                'be_users',
+                'be_users',
+                $expr->eq(
+                    'sys_log.userid',
+                    $queryBuilder->quoteIdentifier('be_users.uid')
+                )
+            )
+            ->where(
+                $expr->gt(
+                    'sys_log.userid',
+                    $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
+                ),
+                $expr->gt(
+                    'sys_log.tstamp',
+                    $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
+                ),
+                $expr->eq(
+                    'sys_log.level',
+                    $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
+                ),
+                $expr->eq(
+                    'sys_log.type',
+                    $queryBuilder->createNamedParameter(self::TYPE_LOGGED_IN, \PDO::PARAM_INT)
+                ),
+                $expr->eq(
+                    'sys_log.action',
+                    $queryBuilder->createNamedParameter(self::ACTION_LOG_IN, \PDO::PARAM_INT)
+                )
+            );
 
         // Set parameter query parts
         if (!empty($parameters)) {
             if ($parameters['user'] !== null) {
-                $whereParts['userId'] = 'sys_log.`userId` = ' . (int) $parameters['user'];
+                $queryBuilder->andWhere(
+                    $expr->eq(
+                        'sys_log.userid',
+                        $queryBuilder->createNamedParameter((int)$parameters['user'], \PDO::PARAM_INT)
+                    )
+                );
             }
-            if ((bool) $parameters['hide-admin'] === true) {
-                $whereParts['hide-admin'] = 'be_users.admin = 0';
+            if ((bool)$parameters['hide-admin'] === true) {
+                $queryBuilder->andWhere(
+                    $expr->eq(
+                        'be_users.admin',
+                        $queryBuilder->createNamedParameter(0, \PDO::PARAM_INT)
+                    )
+                );
             }
         }
 
         // Set default variables for output
-        $logs = [
-            'information' => [
-                'total' => $this->getDatabaseConnection()->exec_SELECTcountRows('sys_log.uid', 'sys_log, be_users', implode(' AND ', $whereParts)),
-                'itemsPerPage' => null,
-                'page' => 1,
-            ],
-            'items' => [],
-        ];
-        $logs['information']['itemsPerPage'] = $logs['information']['total'];
+        $logs = [];
 
         // Apply pagination
         $limit = null;
         if ((!empty($parameters)) && $parameters['itemsPerPage'] !== null) {
-            $logs['information']['itemsPerPage'] = (int) $parameters['itemsPerPage'];
 
-            $limit = [
-                'offset' => 0,
-                'items' => (int) $parameters['itemsPerPage'],
-            ];
+            $limit = (int)$parameters['itemsPerPage'];
+            $offset = 0;
+
             if ($parameters['page'] !== null) {
-                $logs['information']['page'] = (int) $parameters['page'];
-                $limit['offset'] = $limit['items'] * ((int) $parameters['page'] - 1);
+                $offset = $limit * ((int)$parameters['page'] - 1);
             }
         }
+        $statement = $queryBuilder
+            ->setMaxResults($limit ?? 999)
+            ->setFirstResult($offset ?? 0)
+            ->orderBy('sys_log.tstamp', 'desc')
+            ->execute();
 
-        // Render all requested logs
-        $res = $this->getDatabaseConnection()->exec_SELECTquery(
-            'sys_log.*',
-            'sys_log, be_users',
-            implode(' AND ', $whereParts),
-            '',
-            'sys_log.tstamp DESC',
-            ($limit ? implode(', ', $limit) : null)
-        );
-        while ($row = $this->getDatabaseConnection()->sql_fetch_assoc($res)) {
+        while ($row = $statement->fetch()) {
             $data = unserialize($row['log_data']);
             $logs['items'][] = [
                 'user_id' => $row['userid'],
@@ -87,14 +115,7 @@ class LogService implements \TYPO3\CMS\Core\SingletonInterface
                 'tstamp' => $row['tstamp'],
             ];
         }
-        return $logs;
-    }
 
-    /**
-     * @return \TYPO3\CMS\Core\Database\DatabaseConnection
-     */
-    protected function getDatabaseConnection()
-    {
-        return $GLOBALS['TYPO3_DB'];
+        return $logs;
     }
 }

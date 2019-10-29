@@ -5,6 +5,7 @@ use KoninklijkeCollective\MyUserManagement\Domain\Model\BackendUser;
 use KoninklijkeCollective\MyUserManagement\Utility\AccessUtility;
 use TYPO3\CMS\Backend\Utility\BackendUtility;
 use TYPO3\CMS\Beuser\Domain\Model\Demand;
+use TYPO3\CMS\Core\Authentication\BackendUserAuthentication;
 use TYPO3\CMS\Core\Messaging\AbstractMessage;
 use TYPO3\CMS\Extbase\Mvc\View\ViewInterface;
 use TYPO3\CMS\Extbase\Utility\LocalizationUtility;
@@ -183,7 +184,7 @@ class BackendUserController extends \TYPO3\CMS\Beuser\Controller\BackendUserCont
     /**
      * @return \TYPO3\CMS\Core\Authentication\BackendUserAuthentication
      */
-    protected function getBackendUserAuthentication()
+    protected function getBackendUserAuthentication(): BackendUserAuthentication
     {
         return $GLOBALS['BE_USER'];
     }

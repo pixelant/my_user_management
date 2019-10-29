@@ -1,12 +1,18 @@
 <?php
+
 namespace KoninklijkeCollective\MyUserManagement\ViewHelper;
+
+use TYPO3\CMS\Core\Database\ConnectionPool;
+use TYPO3\CMS\Core\Utility\GeneralUtility;
+use TYPO3Fluid\Fluid\Core\Rendering\RenderingContextInterface;
+use TYPO3Fluid\Fluid\Core\ViewHelper\AbstractViewHelper;
 
 /**
  * Retrieve page information
  *
  * @package KoninklijkeCollective\MyUserManagement\ViewHelpers
  */
-class PageInfoViewHelper extends \TYPO3\CMS\Fluid\Core\ViewHelper\AbstractViewHelper
+class PageInfoViewHelper extends AbstractViewHelper
 {
 
     /**
@@ -15,34 +21,41 @@ class PageInfoViewHelper extends \TYPO3\CMS\Fluid\Core\ViewHelper\AbstractViewHe
     protected $escapeOutput = false;
 
     /**
-     * @var \TYPO3\CMS\Frontend\Page\PageRepository
-     * @inject
+     * Arguments
      */
-    protected $pageRepository;
+    public function initializeArguments()
+    {
+        $this->registerArgument('pageId', 'int', 'Page uid', true);
+        $this->registerArgument('as', 'string', 'Render as', false, 'page');
+    }
 
     /**
-     * Retrieve page details from given page id
-     *
-     * @param integer $pageId
-     * @param string $as
-     * @return string Rendered string
+     * @param array $arguments
+     * @param \Closure $renderChildrenClosure
+     * @param RenderingContextInterface $renderingContext
+     * @return mixed
      */
-    public function render($pageId, $as = 'page')
+    public static function renderStatic(array $arguments, \Closure $renderChildrenClosure, RenderingContextInterface $renderingContext)
     {
-        $this->templateVariableContainer->add($as, $this->getPageRepository()->getPage($pageId));
-        $output = $this->renderChildren();
-        $this->templateVariableContainer->remove($as);
+        $as = $arguments['as'];
+        $pageId = $arguments['pageId'];
+
+        $variableContainer = $renderingContext->getVariableProvider();
+        $variableContainer->add($as, static::getPageRow($pageId));
+        $output = $renderChildrenClosure();
+        $variableContainer->remove($as);
+
         return $output;
     }
 
     /**
      * @return \TYPO3\CMS\Frontend\Page\PageRepository
      */
-    protected function getPageRepository()
+    protected static function getPageRow($pageId)
     {
-        if ($this->pageRepository === null) {
-            $this->objectManager->get(\TYPO3\CMS\Frontend\Page\PageRepository::class);
-        }
-        return $this->pageRepository;
+        return GeneralUtility::makeInstance(ConnectionPool::class)
+            ->getConnectionForTable('pages')
+            ->select(['*'], 'pages', ['uid' => $pageId])
+            ->fetch();
     }
 }
